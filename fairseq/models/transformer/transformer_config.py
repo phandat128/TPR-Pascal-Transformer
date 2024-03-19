@@ -339,3 +339,48 @@ class TransformerConfig(FairseqDataclass):
             return config
         else:
             return args
+
+
+@dataclass
+class PascalTransformerConfig(TransformerConfig):
+    pascal_weight_fn: Optional[str] = field(
+        default="normal",
+        metadata={"help": "weight function for parent tokens in Pascal",
+                  "choices": ['normal', 'uniform']}
+    )
+    pascal_weight_param: float = field(
+        default=1.,
+        metadata={"help": "parameter of Pascal weight function (std or window size)"}
+    )
+    parent_ignoring: float = field(
+        default=0.,
+        metadata={"help": "dropout probability for dependencies in Pascal heads"}
+    )
+    num_encoder_pascal_heads: Optional[str] = field(
+        default=None,
+        metadata={"help": "list of parent-scaled self-attention heads per layer"}
+    )
+
+
+@dataclass
+class TPRTransformerConfig(TransformerConfig):
+    role_weight_inputs: Optional[str] = field(
+        default=None,
+        metadata={"help": "type of input for role weights"}
+    )
+    num_roles: int = field(
+        default=None,
+        metadata={"help": "number of role in TP-d"}
+    )
+
+
+@dataclass
+class TPRPascalTransformerConfig(PascalTransformerConfig):
+    role_weight_inputs: Optional[str] = field(
+        default=None,
+        metadata={"help": "type of input for role weights"}
+    )
+    num_roles: int = field(
+        default=None,
+        metadata={"help": "number of role in TP-d"}
+    )

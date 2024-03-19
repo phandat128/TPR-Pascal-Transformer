@@ -90,3 +90,34 @@ class FairseqEncoder(nn.Module):
                 m.set_num_updates(num_updates)
 
         self.apply(_apply)
+
+
+class FairseqTagsEncoder(FairseqEncoder):
+    """class for Pascal encoders."""
+
+    def __init__(self, dictionary, tags_dictionary):
+        super().__init__(dictionary)
+        self.tags_dictionary = tags_dictionary
+
+    def forward(self, src_tokens, src_lengths=None, src_tags=None, **kwargs):
+        """
+        Args:
+            src_tokens (LongTensor): tokens in the source language of shape
+                `(batch, src_len)`
+            src_lengths (LongTensor): lengths of each source sentence of shape
+                `(batch)`
+        """
+        raise NotImplementedError
+
+    def reorder_encoder_out(self, encoder_out, new_order):
+        """
+        Reorder encoder output according to `new_order`.
+
+        Args:
+            encoder_out: output from the ``forward()`` method
+            new_order (LongTensor): desired order
+
+        Returns:
+            `encoder_out` rearranged according to `new_order`
+        """
+        raise NotImplementedError

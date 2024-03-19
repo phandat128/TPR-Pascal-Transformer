@@ -1,8 +1,3 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
-#
-# This source code is licensed under the MIT license found in the
-# LICENSE file in the root directory of this source tree.
-
 from typing import Dict, List, Optional
 
 import torch
@@ -11,14 +6,17 @@ from torch import Tensor
 
 from fairseq import utils
 from fairseq.models.transformer import TransformerConfig
-from fairseq.models.transformer.transformer_config import PascalTransformerConfig
+from fairseq.models.transformer.transformer_config import PascalTransformerConfig, TPRTransformerConfig, \
+    TPRPascalTransformerConfig
 from fairseq.modules import LayerNorm, MultiheadAttention
 from fairseq.modules.fairseq_dropout import FairseqDropout
 from fairseq.modules.multihead_pascal import MultiheadPascal
+from fairseq.modules.multihead_tpr import MultiheadTPRAttention
+from fairseq.modules.multihead_tpr_pascal import MultiheadTPRPascal
 from fairseq.modules.quant_noise import quant_noise
 
 
-class TransformerEncoderLayerBase(nn.Module):
+class TPRTransformerEncoderLayerBase(nn.Module):
     """Encoder layer block.
 
     In the original paper each operation (multi-head attention or FFN) is
@@ -135,9 +133,11 @@ class TransformerEncoderLayerBase(nn.Module):
         self.fc2.bias = torch.nn.Parameter(new_fc2_bias)
 
     def build_self_attention(self, embed_dim, cfg):
-        return MultiheadAttention(
+        return MultiheadTPRAttention(
             embed_dim,
             cfg.encoder.attention_heads,
+            role_weights_input=cfg.role_weights_input,
+            num_roles=cfg.num_roles,
             dropout=cfg.attention_dropout,
             self_attention=True,
             q_noise=self.quant_noise,
@@ -229,18 +229,18 @@ class TransformerEncoderLayerBase(nn.Module):
 
 
 # backward compatible with the legacy argparse format
-class TransformerEncoderLayer(TransformerEncoderLayerBase):
+class TPRTransformerEncoderLayer(TPRTransformerEncoderLayerBase):
     def __init__(self, args):
-        super().__init__(TransformerConfig.from_namespace(args))
+        super().__init__(TPRTransformerConfig.from_namespace(args))
         self.args = args
 
     def build_self_attention(self, embed_dim, args):
         return super().build_self_attention(
-            embed_dim, TransformerConfig.from_namespace(args)
+            embed_dim, TPRTransformerConfig.from_namespace(args)
         )
 
 
-class PascalTransformerEncoderLayerBase(nn.Module):
+class TPRPascalTransformerEncoderLayerBase(nn.Module):
     """Encoder layer block.
 
     In the original paper each operation (multi-head attention or FFN) is
@@ -255,12 +255,12 @@ class PascalTransformerEncoderLayerBase(nn.Module):
         cfg (argparse.Namespace): parsed command-line arguments
     """
 
-    def __init__(self, cfg, num_pascal_heads, return_fc=False):
+    def __init__(self, cfg, return_fc=False):
         super().__init__()
         self.cfg = cfg
         self.return_fc = return_fc
         self.embed_dim = cfg.encoder.embed_dim
-        self.num_pascal_heads = num_pascal_heads
+        self.num_pascal_heads = cfg.num_pascal_heads
         self.quant_noise = cfg.quant_noise.pq
         self.quant_noise_block_size = cfg.quant_noise.pq_block_size
         self.self_attn = self.build_self_attention(self.embed_dim, cfg)
@@ -358,9 +358,11 @@ class PascalTransformerEncoderLayerBase(nn.Module):
         self.fc2.bias = torch.nn.Parameter(new_fc2_bias)
 
     def build_self_attention(self, embed_dim, cfg):
-        return MultiheadPascal(
+        return MultiheadTPRPascal(
             embed_dim,
             cfg.encoder.attention_heads,
+            num_roles=cfg.num_roles,
+            role_weights_input=cfg.role_weights_input,
             dropout=cfg.attention_dropout,
             parent_ignoring=cfg.parent_ignoring,
             num_pascal_heads=self.num_pascal_heads,
@@ -457,18 +459,18 @@ class PascalTransformerEncoderLayerBase(nn.Module):
         return x
 
 
-class PascalTransformerEncoderLayer(PascalTransformerEncoderLayerBase):
+class PascalTransformerEncoderLayer(TPRPascalTransformerEncoderLayerBase):
     def __init__(self, args):
-        super().__init__(PascalTransformerConfig.from_namespace(args))
+        super().__init__(TPRPascalTransformerConfig.from_namespace(args))
         self.args = args
 
     def build_self_attention(self, embed_dim, args):
         return super().build_self_attention(
-            embed_dim, PascalTransformerConfig.from_namespace(args)
+            embed_dim, TPRPascalTransformerConfig.from_namespace(args)
         )
 
 
-class TransformerDecoderLayerBase(nn.Module):
+class TPRTransformerDecoderLayerBase(nn.Module):
     """Decoder layer block.
 
     In the original paper each operation (multi-head attention, encoder
@@ -580,9 +582,11 @@ class TransformerDecoderLayerBase(nn.Module):
     def build_self_attention(
         self, embed_dim, cfg, add_bias_kv=False, add_zero_attn=False
     ):
-        return MultiheadAttention(
+        return MultiheadTPRAttention(
             embed_dim,
             cfg.decoder.attention_heads,
+            role_weights_input=cfg.role_weights_input,
+            num_roles=cfg.num_roles,
             dropout=cfg.attention_dropout,
             add_bias_kv=add_bias_kv,
             add_zero_attn=add_zero_attn,
@@ -593,9 +597,11 @@ class TransformerDecoderLayerBase(nn.Module):
         )
 
     def build_encoder_attention(self, embed_dim, cfg):
-        return MultiheadAttention(
+        return MultiheadTPRAttention(
             embed_dim,
             cfg.decoder.attention_heads,
+            role_weights_input=cfg.role_weights_input,
+            num_roles=cfg.num_roles,
             kdim=cfg.encoder.embed_dim,
             vdim=cfg.encoder.embed_dim,
             dropout=cfg.attention_dropout,
@@ -763,12 +769,12 @@ class TransformerDecoderLayerBase(nn.Module):
 
 
 # backward compatible with the legacy argparse format
-class TransformerDecoderLayer(TransformerDecoderLayerBase):
+class TPRTransformerDecoderLayer(TPRTransformerDecoderLayerBase):
     def __init__(
         self, args, no_encoder_attn=False, add_bias_kv=False, add_zero_attn=False
     ):
         super().__init__(
-            TransformerConfig.from_namespace(args),
+            TPRTransformerConfig.from_namespace(args),
             no_encoder_attn=no_encoder_attn,
             add_bias_kv=add_bias_kv,
             add_zero_attn=add_zero_attn,
@@ -780,7 +786,7 @@ class TransformerDecoderLayer(TransformerDecoderLayerBase):
     ):
         return super().build_self_attention(
             embed_dim,
-            TransformerConfig.from_namespace(args),
+            TPRTransformerConfig.from_namespace(args),
             add_bias_kv=add_bias_kv,
             add_zero_attn=add_zero_attn,
         )
@@ -788,5 +794,5 @@ class TransformerDecoderLayer(TransformerDecoderLayerBase):
     def build_encoder_attention(self, embed_dim, args):
         return super().build_encoder_attention(
             embed_dim,
-            TransformerConfig.from_namespace(args),
+            TPRTransformerConfig.from_namespace(args),
         )
