@@ -341,6 +341,7 @@ class TransformerConfig(FairseqDataclass):
             return args
 
 
+# Extra feature adding by Phan Dat
 @dataclass
 class PascalTransformerConfig(TransformerConfig):
     pascal_weight_fn: Optional[str] = field(
@@ -359,6 +360,18 @@ class PascalTransformerConfig(TransformerConfig):
     num_encoder_pascal_heads: Optional[str] = field(
         default=None,
         metadata={"help": "list of parent-scaled self-attention heads per layer"}
+    )
+    pascal_encoder_layers: int = field(
+        default=6,
+        metadata={"help": "number of pascal encoder layers, sometime equivalent to encoder_layers"}
+    )
+    bart_ckp_path: str = field(
+        default=None,
+        metadata={"help": "path to bart checkpoint directory if use pretrain bart embeddings"}
+    )
+    ckp_file: str = field(
+        default='model.pt',
+        metadata={"help": "checkpoint file of bart"}
     )
 
 

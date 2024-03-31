@@ -428,7 +428,8 @@ class PascalTransformerEncoderBase(FairseqTagsEncoder):
         else:
             self.layers = nn.ModuleList([])
         self.layers.extend(
-            [self.build_encoder_layer(cfg, h) if h != 0 else transformer_layer.TransformerEncoderLayer(cfg) for h in self.num_encoder_pascal_heads]
+            [self.build_encoder_layer(cfg, h) if h != 0
+             else transformer_layer.TransformerEncoderLayerBase(cfg, self.return_fc) for h in self.num_encoder_pascal_heads]
         )
         self.num_layers = len(self.layers)
 
