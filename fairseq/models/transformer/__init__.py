@@ -24,6 +24,7 @@ from .transformer_legacy import (
     transformer_wmt_en_de_big_t2t,
 )
 from .transformer_pascal import pascal_transformer
+from .transformer_tpr_pascal import tpr_pascal_transformer
 from .transformer_base import TransformerModelBase, Embedding
 
 
@@ -48,5 +49,6 @@ __all__ = [
     "DEFAULT_MAX_SOURCE_POSITIONS",
     "DEFAULT_MAX_TARGET_POSITIONS",
     "DEFAULT_MIN_PARAMS_TO_WRAP",
-    'pascal_transformer'
+    'pascal_transformer',
+    'tpr_pascal_transformer'
 ]

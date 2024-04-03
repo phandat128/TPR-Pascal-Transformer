@@ -149,7 +149,6 @@ class MultiheadTPRAttention(FairseqIncrementalDecoder):
             self.role_embeddings = nn.Parameter(torch.zeros(self.num_roles, self.head_dim))
             self.tpr_norm = LayerNorm(embed_dim)
 
-
         if add_bias_kv:
             self.bias_k = Parameter(torch.Tensor(1, 1, embed_dim))
             self.bias_v = Parameter(torch.Tensor(1, 1, embed_dim))
@@ -812,7 +811,7 @@ class MultiheadTPRAttention(FairseqIncrementalDecoder):
             role_attn_weights = F.softmax(role_attn_weights, dim=-1)
             R_out = torch.matmul(role_attn_weights, role_matrix)  # (bsz * num_heads, tgt_len, head_dim)
             R_out = R_out.transpose(0, 1).contiguous().view(tgt_len, bsz, embed_dim)
-            R_out = F.dropout(R_out, p=self.dropout, training=self.training)
+            R_out = self.dropout_module(R_out)
             attn = attn + torch.mul(R_out, attn)
             attn = self.tpr_norm(attn)
 

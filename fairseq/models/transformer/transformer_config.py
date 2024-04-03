@@ -377,7 +377,7 @@ class PascalTransformerConfig(TransformerConfig):
 
 @dataclass
 class TPRTransformerConfig(TransformerConfig):
-    role_weight_inputs: Optional[str] = field(
+    role_weights_input: str = field(
         default=None,
         metadata={"help": "type of input for role weights"}
     )
@@ -389,7 +389,7 @@ class TPRTransformerConfig(TransformerConfig):
 
 @dataclass
 class TPRPascalTransformerConfig(PascalTransformerConfig):
-    role_weight_inputs: Optional[str] = field(
+    role_weights_input: str = field(
         default=None,
         metadata={"help": "type of input for role weights"}
     )
