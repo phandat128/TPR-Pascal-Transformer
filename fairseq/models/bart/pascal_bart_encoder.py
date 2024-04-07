@@ -232,9 +232,13 @@ class PascalBartEncoderBase(FairseqTagsEncoder):
         if return_all_hiddens:
             encoder_states.append(x)
 
-        # bart encoder layers
-        for bart_layer in self.bart_encoder_layers:
-            lr = bart_layer(
+        # pascal encoder layers
+        for i, h in enumerate(self.num_encoder_pascal_heads):
+            lr = self.layers[i](
+                x, parents=parents, encoder_padding_mask=encoder_padding_mask if has_pads else None
+            ) \
+                if h != 0 else \
+                self.layers[i](
                 x, encoder_padding_mask=encoder_padding_mask if has_pads else None
             )
 
@@ -252,13 +256,9 @@ class PascalBartEncoderBase(FairseqTagsEncoder):
         if self.layer_norm is not None:
             x = self.layer_norm(x)
 
-        # pascal encoder layers
-        for i, h in enumerate(self.num_encoder_pascal_heads):
-            lr = self.layers[i](
-                x, parents=parents, encoder_padding_mask=encoder_padding_mask if has_pads else None
-            ) \
-                if h != 0 else \
-                self.layers[i](
+        # bart encoder layers
+        for bart_layer in self.bart_encoder_layers:
+            lr = bart_layer(
                 x, encoder_padding_mask=encoder_padding_mask if has_pads else None
             )
 

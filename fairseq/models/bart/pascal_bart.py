@@ -137,7 +137,9 @@ class PascalBartModelBase(FairseqTagsModel):
             **kwargs,
         )
         bart = x['models'][0]
-        self.encoder.bart_encoder_layers.load_state_dict(bart.state_dict(), strict=False)
+        self.encoder.bart_encoder_layers.load_state_dict(bart.encoder.layers.state_dict(), strict=True)
+        self.encoder.embed_tokens.load_state_dict(bart.encoder.embed_tokens.state_dict(), strict=True)
+        self.decoder.load_state_dict(bart.decoder.state_dict(), strict=True)
 
     # TorchScript doesn't support optional arguments with variable length (**kwargs).
     # Current workaround is to add union of all arguments in child classes.
