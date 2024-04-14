@@ -17,6 +17,7 @@ params="$DATADIR \
 --tags-data $TAGSDIR \
 --bart-ckp-path $BART_CKPT \
 --ckp-file model.pt \
+--pascal_encoder-layers 6 \
 --num-encoder-pascal-heads 7,0,0,0,0,0 \
 --dropout 0.3 \
 --parent-ignoring 0.3 \
@@ -41,7 +42,7 @@ params="$DATADIR \
 --save-interval 500000 \
 --save-interval-updates 500 \
 --keep-interval-updates 1 \
---arch pascal_bart_large \
+--arch pascal_mbart_large \
 --task tags_translation \
 "
 

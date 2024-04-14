@@ -84,19 +84,19 @@ class PascalBartEncoderBase(FairseqTagsEncoder):
             self.quant_noise = None
 
         if self.encoder_layerdrop > 0.0:
+            self.pascal_layers = LayerDropModuleList(p=self.encoder_layerdrop)
             self.layers = LayerDropModuleList(p=self.encoder_layerdrop)
-            self.bart_encoder_layers = LayerDropModuleList(p=self.encoder_layerdrop)
         else:
-            self.bart_encoder_layers = nn.ModuleList([])
             self.layers = nn.ModuleList([])
-        self.bart_encoder_layers.extend(
+            self.pascal_layers = nn.ModuleList([])
+        self.layers.extend(
             [transformer_layer.TransformerEncoderLayerBase(cfg, self.return_fc) for _ in range(cfg.encoder_layers)]  # for pretrained bart encoder
         )
-        self.layers.extend(
+        self.pascal_layers.extend(
             [self.build_encoder_layer(cfg, h) if h != 0
              else transformer_layer.TransformerEncoderLayerBase(cfg, self.return_fc) for h in self.num_encoder_pascal_heads]
         )
-        self.num_layers = len(self.layers) + len(self.bart_encoder_layers)
+        self.num_layers = len(self.pascal_layers) + len(self.layers)
 
         if cfg.encoder.normalize_before:
             self.layer_norm = LayerNorm(embed_dim, export=cfg.export)
@@ -234,11 +234,11 @@ class PascalBartEncoderBase(FairseqTagsEncoder):
 
         # pascal encoder layers
         for i, h in enumerate(self.num_encoder_pascal_heads):
-            lr = self.layers[i](
+            lr = self.pascal_layers[i](
                 x, parents=parents, encoder_padding_mask=encoder_padding_mask if has_pads else None
             ) \
                 if h != 0 else \
-                self.layers[i](
+                self.pascal_layers[i](
                 x, encoder_padding_mask=encoder_padding_mask if has_pads else None
             )
 
@@ -253,11 +253,8 @@ class PascalBartEncoderBase(FairseqTagsEncoder):
                 encoder_states.append(x)
                 fc_results.append(fc_result)
 
-        if self.layer_norm is not None:
-            x = self.layer_norm(x)
-
         # bart encoder layers
-        for bart_layer in self.bart_encoder_layers:
+        for bart_layer in self.layers:
             lr = bart_layer(
                 x, encoder_padding_mask=encoder_padding_mask if has_pads else None
             )
@@ -362,7 +359,7 @@ class PascalBartEncoderBase(FairseqTagsEncoder):
 
     def upgrade_state_dict_named(self, state_dict, name):
         """Upgrade a (possibly old) state dict for new versions of fairseq."""
-        for i in range(self.num_layers):
+        for i in range(len(self.layers)):
             # update layer norms
             self.layers[i].upgrade_state_dict_named(
                 state_dict, "{}.layers.{}".format(name, i)

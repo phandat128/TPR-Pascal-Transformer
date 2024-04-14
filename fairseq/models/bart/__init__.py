@@ -5,4 +5,3 @@
 
 from .hub_interface import *  # noqa
 from .model import *  # noqa
-from .pascal_bart import *

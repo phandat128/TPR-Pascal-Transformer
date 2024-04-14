@@ -7,13 +7,14 @@ from torch import Tensor, nn
 from fairseq import utils, hub_utils
 from fairseq.dataclass.utils import gen_parser_from_dataclass
 from fairseq.models import register_model, register_model_architecture
-from fairseq.models.bart.pascal_bart_encoder import PascalBartEncoderBase
+from fairseq.models.pascal_bart.pascal_bart_encoder import PascalBartEncoderBase
 from fairseq.models.fairseq_model import FairseqTagsModel
 from fairseq.models.transformer import (
     TransformerDecoderBase,
 )
 from fairseq.models.transformer.transformer_config import PascalTransformerConfig, DEFAULT_MAX_SOURCE_POSITIONS, \
     DEFAULT_MAX_TARGET_POSITIONS, DEFAULT_MIN_PARAMS_TO_WRAP
+from fairseq.modules.transformer_sentence_encoder import init_bert_params
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ class PascalBartModelBase(FairseqTagsModel):
         super().__init__(encoder, decoder)
         self.cfg = cfg
         self.supports_align_args = True
+        self.apply(init_bert_params)
         self.load_pretrain_bart(cfg.bart_ckp_path, cfg.ckp_file)
 
     @classmethod
@@ -137,8 +139,7 @@ class PascalBartModelBase(FairseqTagsModel):
             **kwargs,
         )
         bart = x['models'][0]
-        self.encoder.bart_encoder_layers.load_state_dict(bart.encoder.layers.state_dict(), strict=True)
-        self.encoder.embed_tokens.load_state_dict(bart.encoder.embed_tokens.state_dict(), strict=True)
+        self.encoder.load_state_dict(bart.encoder.state_dict(), strict=False)
         self.decoder.load_state_dict(bart.decoder.state_dict(), strict=True)
 
     # TorchScript doesn't support optional arguments with variable length (**kwargs).
@@ -325,3 +326,9 @@ def pascal_bart_large(args):
     args.activation_fn = getattr(args, "activation_fn", "gelu")
     args.pooler_activation_fn = getattr(args, "pooler_activation_fn", "tanh")
     args.pooler_dropout = getattr(args, "pooler_dropout", 0.0)
+
+
+@register_model_architecture("pascal_bart", "pascal_mbart_large")
+def pascal_mbart_large(args):
+    args.no_scale_embedding = getattr(args, "no_scale_embedding", False)
+    pascal_bart_large(args)
